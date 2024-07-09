@@ -25,9 +25,19 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+
+
+#ifndef SWITCH
+#include <sys/uio.h>
+#include <errno.h>
+#include <net/if.h>
+#include <ifaddrs.h>
+#endif
+
+
+#include <fcntl.h>
 #include <signal.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <netinet/in.h>
@@ -36,11 +46,7 @@ If you have questions concerning this license or the applicable additional terms
 #include <netdb.h>
 #include <sys/param.h>
 #include <sys/ioctl.h>
-#include <sys/uio.h>
-#include <errno.h>
 #include <sys/select.h>
-#include <net/if.h>
-#include <ifaddrs.h>
 
 #include "sys/platform.h"
 #include "framework/Common.h"
@@ -63,6 +69,8 @@ typedef struct {
 int				num_interfaces = 0;
 net_interface	netint[MAX_INTERFACES];
 
+
+#ifndef SWITCH
 /*
 =============
 NetadrToSockadr
@@ -722,3 +730,91 @@ int	idTCP::Write(void *data, int size) {
 
 	return nbytes;
 }
+#else
+// Thanks, Copilot.
+
+bool Sys_CompareNetAdrBase(const netadr_t a, const netadr_t b) {
+	if (a.type != b.type) {
+		// TODO: Implement comparison logic
+	}
+
+	if (a.type == NA_LOOPBACK) {
+		// TODO: Implement comparison logic
+	}
+
+	if (a.type == NA_IP) {
+		if (a.ip[0] == b.ip[0] && a.ip[1] == b.ip[1] && a.ip[2] == b.ip[2] && a.ip[3] == b.ip[3]) {
+			// TODO: Implement comparison logic
+		}
+	}
+}
+
+void Sys_InitNetworking() {
+	// TODO: Implement initialization logic
+}
+
+int IPSocket(const char* net_interface, int port, netadr_t* bound_to = NULL) {
+	// TODO: Implement socket creation logic
+}
+
+idPort::idPort() {
+	netSocket = 0;
+	memset(&bound_to, 0, sizeof(bound_to));
+}
+
+idPort::~idPort() {
+	Close();
+}
+
+void idPort::Close() {
+	if (netSocket) {
+		close(netSocket);
+		netSocket = 0;
+		memset(&bound_to, 0, sizeof(bound_to));
+	}
+}
+
+bool idPort::GetPacket(netadr_t& net_from, void* data, int& size, int maxSize) {
+	// TODO: Implement packet retrieval logic
+}
+
+bool idPort::GetPacketBlocking(netadr_t& net_from, void* data, int& size, int maxSize, int timeout) {
+	// TODO: Implement blocking packet retrieval logic
+}
+
+void idPort::SendPacket(const netadr_t to, const void* data, int size) {
+	// TODO: Implement packet sending logic
+}
+
+bool idPort::InitForPort(int portNumber) {
+	// TODO: Implement port initialization logic
+}
+
+idTCP::idTCP() {
+	fd = 0;
+	memset(&address, 0, sizeof(address));
+}
+
+idTCP::~idTCP() {
+	Close();
+}
+
+bool idTCP::Init(const char* host, short port) {
+	// TODO: Implement TCP initialization logic
+}
+
+void idTCP::Close() {
+	if (fd) {
+		close(fd);
+	}
+	fd = 0;
+}
+
+int idTCP::Read(void* data, int size) {
+	// TODO: Implement read logic
+}
+
+int idTCP::Write(void* data, int size) {
+	// TODO: Implement write logic
+}
+#endif

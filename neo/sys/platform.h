@@ -217,6 +217,30 @@ If you have questions concerning this license or the applicable additional terms
 
 #endif
 
+// NX/Nintendo Switch
+#ifdef SWITCH
+#define _alloca16( x )			( (void *) ( (assert((x)<ID_MAX_ALLOCA_SIZE)), ((((uintptr_t)alloca( (x)+15 )) + 15) & ~15) ) )
+#define _alloca( x )				( (assert((x)<ID_MAX_ALLOCA_SIZE)), alloca( (x) ) )
+
+#define ID_GAME_API
+
+#define ALIGN16( x )				x
+#define PACKED						__attribute__((packed))
+
+#define PATHSEPERATOR_STR			"/"
+#define PATHSEPERATOR_CHAR			'/'
+
+#define __cdecl
+#define ASSERT						assert
+
+#define ID_INLINE					inline
+#define ID_STATIC_TEMPLATE
+
+#define assertmem( x, y )
+
+#endif
+
+
 #ifndef ID_MAYBE_INLINE
 // for MSVC it's __inline, otherwise just inline should work
 #define ID_MAYBE_INLINE inline

@@ -31,11 +31,15 @@ If you have questions concerning this license or the applicable additional terms
 #include <errno.h>
 #include <dirent.h>
 #include <unistd.h>
+#ifndef SWITCH
 #include <sys/mman.h>
+#endif
 #include <sys/time.h>
 #include <pwd.h>
+#ifndef SWITCH
 #include <dlfcn.h>
 #include <termios.h>
+#endif
 #include <signal.h>
 #include <fcntl.h>
 
@@ -68,7 +72,9 @@ idEditField				history_backup;				// the base edit line
 idCVar in_tty( "in_tty", "1", CVAR_BOOL | CVAR_INIT | CVAR_SYSTEM, "terminal tab-completion and history" );
 
 static bool				tty_enabled = false;
+#ifndef SWITCH
 static struct termios	tty_tc;
+#endif
 
 // pid - useful when you attach to gdb..
 idCVar com_pid( "com_pid", "0", CVAR_INTEGER | CVAR_INIT | CVAR_SYSTEM, "process id" );
@@ -95,9 +101,11 @@ Posix_Exit
 void Posix_Exit(int ret) {
 	if ( tty_enabled ) {
 		Sys_Printf( "shutdown terminal support\n" );
+		#ifndef SWITCH
 		if ( tcsetattr( 0, TCSADRAIN, &tty_tc ) == -1 ) {
 			Sys_Printf( "tcsetattr failed: %s\n", strerror( errno ) );
 		}
+		#endif
 	}
 
 	// process spawning. it's best when it happens after everything has shut down
@@ -288,6 +296,7 @@ TODO: OSX - use the native API instead? NSModule
 =================
 */
 uintptr_t Sys_DLL_Load( const char *path ) {
+	#ifndef SWITCH
 	void* ret = dlopen( path, RTLD_NOW );
 	if (ret == NULL) {
 		// dlopen() failed - this might be ok (we tried one possible path and the next will work)
@@ -310,6 +319,9 @@ uintptr_t Sys_DLL_Load( const char *path ) {
 		}
 	}
 	return (uintptr_t)ret;
+	#else
+	return 0;
+	#endif
 }
 
 /*
@@ -318,12 +330,16 @@ Sys_DLL_GetProcAddress
 =================
 */
 void* Sys_DLL_GetProcAddress( uintptr_t handle, const char *sym ) {
+	#ifndef SWITCH
 	const char *error;
 	void *ret = dlsym( (void *)handle, sym );
 	if ((error = dlerror()) != NULL)  {
 		Sys_Printf( "dlsym '%s' failed: %s\n", sym, error );
 	}
 	return ret;
+	#else
+	return NULL;
+	#endif
 }
 
 /*
@@ -332,7 +348,9 @@ Sys_DLL_Unload
 =================
 */
 void Sys_DLL_Unload( uintptr_t handle ) {
+	#ifndef SWITCH
 	dlclose( (void *)handle );
+	#endif
 }
 
 /*
@@ -576,9 +594,9 @@ static void signalhandlerConsoleStuff(int sig)
 			Sys_Printf( "Sent to background, disabling terminal support.\n" );
 			in_tty.SetBool( false );
 			tty_enabled = false;
-
+#ifndef SWITCH
 			tcsetattr(0, TCSADRAIN, &tty_tc);
-
+#endif
 			// Note: this is only about TTY input, we'll still print to stdout
 			// (which, I think, is normal for processes running in the background)
 		}
@@ -633,7 +651,7 @@ void Posix_InitSignalHandlers( void )
 	const char* exePath = Posix_GetExePath();
 	bt_state = backtrace_create_state(exePath[0] ? exePath : NULL, 0, bt_error_callback, NULL);
 #endif
-
+	#ifndef SWITCH
 	for(int i=0; i<sizeof(crashSigs)/sizeof(crashSigs[0]); ++i)
 	{
 		installSigHandler(crashSigs[i], SA_RESTART|SA_RESETHAND, signalhandlerCrash);
@@ -641,6 +659,7 @@ void Posix_InitSignalHandlers( void )
 
 	installSigHandler(SIGTTIN, 0, signalhandlerConsoleStuff);
 	installSigHandler(SIGTTOU, 0, signalhandlerConsoleStuff);
+	#endif
 
 	// this is also a good place to open dhewm3log.txt for Sys_VPrintf()
 
@@ -698,6 +717,7 @@ Posix_InitConsoleInput
 ===============
 */
 void Posix_InitConsoleInput( void ) {
+	#ifndef SWITCH
 	struct termios tc;
 
 	common->StartupVariable( "in_tty", false );
@@ -736,6 +756,7 @@ void Posix_InitConsoleInput( void ) {
 		tc.c_iflag &= ~(ISTRIP | INPCK);
 		tc.c_cc[VMIN] = 1;
 		tc.c_cc[VTIME] = 0;
+#ifndef SWITCH
 		if ( tcsetattr( 0, TCSADRAIN, &tc ) == -1 ) {
 			if(disableTTYinput) {
 				// got SIGTTOU => running in the background (started with `./dhewm3 &` or similar)
@@ -748,6 +769,7 @@ void Posix_InitConsoleInput( void ) {
 				Sys_Printf( "terminal support may not work correctly. Use +set in_tty 0 to disable it\n" );
 			}
 		}
+#endif
 #if 0
 		// make the output non blocking
 		if ( fcntl( STDOUT_FILENO, F_SETFL, fcntl( STDOUT_FILENO, F_GETFL, 0 ) | O_NONBLOCK ) == -1 ) {
@@ -767,6 +789,7 @@ void Posix_InitConsoleInput( void ) {
 	} else {
 		Sys_Printf( "terminal support disabled\n" );
 	}
+	#endif
 }
 
 /*
